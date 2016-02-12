@@ -1,1 +1,0 @@
-# OpenCV_3_Car_Counting_Visual_Basic
