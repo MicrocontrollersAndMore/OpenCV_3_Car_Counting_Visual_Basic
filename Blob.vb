@@ -27,8 +27,7 @@ Public Class Blob
     Public dblCurrentAspectRatio As Double
 
     Public intCurrentRectArea As Integer
-
-    Public blnTrackedCurrently As Boolean
+    
     Public blnCurrentMatchFoundOrNewBlob As Boolean
 
     Public blnStillBeingTracked As Boolean

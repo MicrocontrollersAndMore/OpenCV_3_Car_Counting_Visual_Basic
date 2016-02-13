@@ -139,21 +139,33 @@ Public Class frmMain
 
             CvInvoke.FindContours(imgThreshCopy, contours, Nothing, RetrType.External, ChainApproxMethod.ChainApproxSimple)
 
+            drawAndShowContours(imgThresh.Size(), contours, "imgContours")
+            
+            Dim convexHulls As New VectorOfVectorOfPoint(contours.Size())
+
+            For i As Integer = 0 To contours.Size() - 1
+                CvInvoke.ConvexHull(contours(i), convexHulls(i))
+            Next
+
+            drawAndShowContours(imgThresh.Size(), convexHulls, "imgConvexHulls")
+            
             For i As Integer = 0 To contours.Size() - 1
 
-                Dim possibleBlob As New Blob(contours(i))
+                Dim possibleBlob As New Blob(convexHulls(i))
 
-                If (possibleBlob.intCurrentRectArea > 500 And _
-                    possibleBlob.dblCurrentAspectRatio > 0.25 And _
+                If (possibleBlob.intCurrentRectArea > 400 And _
+                    possibleBlob.dblCurrentAspectRatio > 0.2 And _
                     possibleBlob.dblCurrentAspectRatio < 4.0 And _
                     possibleBlob.currentBoundingRect.Width > 30 And _
                     possibleBlob.currentBoundingRect.Height > 30 And _
                     possibleBlob.dblCurrentDiagonalSize > 60.0 And _
-                    (CvInvoke.ContourArea(possibleBlob.currentContour) / possibleBlob.intCurrentRectArea) > 0.40) Then
+                    (CvInvoke.ContourArea(possibleBlob.currentContour) / possibleBlob.intCurrentRectArea) > 0.50) Then
                     currentFrameBlobs.Add(possibleBlob)
                 End If
                 
             Next
+
+            drawAndShowContours(imgThresh.Size(), currentFrameBlobs, "imgCurrentFrameBlobs")
             
             If (blnFirstFrame = True) Then
                 For Each currentFrameBlob As Blob In currentFrameBlobs
@@ -163,22 +175,10 @@ Public Class frmMain
                 matchCurrentFrameBlobsToExistingBlobs(blobs, currentFrameBlobs)
             End If
 
-            Dim imgContours As New Mat(imgFrame1.Size, DepthType.Cv8U, 3)
-
-            contours = New VectorOfVectorOfPoint()
-
-            For Each blob As Blob In blobs
-                If (blob.blnStillBeingTracked = True) Then
-                    contours.Push(blob.currentContour)
-                End If
-            Next
+            drawAndShowContours(imgThresh.Size(), blobs, "imgBlobs")
             
-            CvInvoke.DrawContours(imgContours, contours, -1, SCALAR_WHITE, -1)
-
-            CvInvoke.Imshow("imgContours", imgContours)
-
             imgFrame2Copy = imgFrame2.Clone()
-
+            
             drawBlobInfoOnImage(blobs, imgFrame2Copy)
 
             Dim atLeastOneBlobCrossedTheLine = checkIfBlobsCrossedTheLine(blobs, horizontalLinePosition, carCount)
@@ -242,7 +242,7 @@ Public Class frmMain
                 
             Next
 
-            If (dblLeastDistance < currentFrameBlob.dblCurrentDiagonalSize * 1.5) Then
+            If (dblLeastDistance < currentFrameBlob.dblCurrentDiagonalSize * 0.5) Then
                 addBlobToExistingBlobs(currentFrameBlob, existingBlobs, intIndexOfLeastDistance)
             Else
                 addNewBlob(currentFrameBlob, existingBlobs)
@@ -298,6 +298,36 @@ Public Class frmMain
         Return Math.Sqrt((intX ^ 2) + (intY ^ 2))
 
     End Function
+
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    Sub drawAndShowContours(imageSize As Size, contours As VectorOfVectorOfPoint, strImageName As String)
+
+        Dim image As New Mat(imageSize, DepthType.Cv8U, 3)
+
+        CvInvoke.DrawContours(image, contours, -1, SCALAR_WHITE, -1)
+
+        CvInvoke.Imshow(strImageName, image)
+
+    End Sub
+    
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    Sub drawAndShowContours(imageSize As Size, blobs As List(Of Blob), strImageName As String)
+
+        Dim image As New Mat(imageSize, DepthType.Cv8U, 3)
+
+        Dim contours As New VectorOfVectorOfPoint()
+
+        For Each blob As Blob In blobs
+            If (blob.blnStillBeingTracked = True) Then
+                contours.Push(blob.currentContour)
+            End If
+        Next
+
+        CvInvoke.DrawContours(image, contours, -1, SCALAR_WHITE, -1)
+
+        CvInvoke.Imshow(strImageName, image)
+
+    End Sub
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function checkIfBlobsCrossedTheLine(ByRef blobs As List(Of Blob), ByRef horizontalLinePosition As Integer, ByRef carCount As Integer) As Boolean
